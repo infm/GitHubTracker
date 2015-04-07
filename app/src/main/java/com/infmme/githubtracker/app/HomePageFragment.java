@@ -2,6 +2,7 @@ package com.infmme.githubtracker.app;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -69,8 +70,14 @@ public class HomePageFragment extends Fragment {
         mAdapter = new NotificationsAdapter(context);
         mListView.setAdapter(mAdapter);
         mViewSwitcher.showNext();
+    }
 
-        fetchData(context, mAdapter);
+    @Override
+    public void onResume() {
+        super.onResume();
+        Context context = getActivity();
+        if (null != context && null != mAdapter)
+            fetchData(context, mAdapter);
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -112,42 +119,65 @@ public class HomePageFragment extends Fragment {
                 public void run() {
                     final String logTag = "FetchData";
                     try {
-                        GitHub github =
-                                GitHub.connectUsingOAuth(accessToken.substring(0, accessToken
-                                        .indexOf('&')));
-                        if (!github.isCredentialValid()) {
-                            Log.e(logTag, "Auth failed " + github);
-                            return;
-                        }
-                        Log.d(logTag, "Me: " + github.getMyself().getName());
-                        GHNotificationStream stream = github.listNotifications();
-                        stream.nonBlocking(true);
-                        final List<GHThread> threadList = new ArrayList<GHThread>();
-                        for (GHThread thread : stream)
-                            threadList.add(thread);
-                        mHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                adapter.clear();
-                                for (GHThread thread : threadList) {
-                                    mAdapter.add(thread);
-                                    Log.d(logTag, String.format("Repo: %s; Title: %s; type: %s; reason: " +
-                                                                        "%s;",
-                                                                thread.getRepository(),
-                                                                thread.getTitle(), thread.getType(),
-                                                                thread.getReason()));
+                        GitHub github = authorize(accessToken);
+                        Runnable task = null;
+                        if (null != github) {
+                            Log.d(logTag, "Me: " + github.getMyself().getName());
+                            GHNotificationStream stream = github.listNotifications();
+                            stream.nonBlocking(true);
+                            final List<GHThread> threadList = new ArrayList<GHThread>();
+                            for (GHThread thread : stream)
+                                threadList.add(thread);
+                            task = new Runnable() {
+                                @Override
+                                public void run() {
+                                    adapter.clear();
+                                    for (GHThread thread : threadList) {
+                                        mAdapter.add(thread);
+                                        Log.d(logTag, String.format("Repo: %s; Title: %s; type: %s; reason: " +
+                                                                            "%s;",
+                                                                    thread.getRepository(),
+                                                                    thread.getTitle(), thread.getType(),
+                                                                    thread.getReason()));
+                                    }
+                                    adapter.notifyDataSetChanged();
+                                    if (mViewSwitcher.getCurrentView() == mEmptyView)
+                                        mViewSwitcher.showPrevious();
                                 }
-                                adapter.notifyDataSetChanged();
-                                if (mViewSwitcher.getCurrentView() == mEmptyView)
-                                    mViewSwitcher.showPrevious();
-                            }
-                        });
+                            };
+                        } else {
+                            PreferenceManager.getDefaultSharedPreferences(context)
+                                             .edit().putString("accessToken", "invalid").commit();
+                            task = new Runnable() {
+                                @Override
+                                public void run() {
+                                    startActivity(new Intent(context, LoginActivity.class));
+                                }
+                            };
+                        }
+                        mHandler.post(task);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
             }).start();
         }
+    }
+
+    private GitHub authorize(String accessToken) {
+        try {
+            String meaningfulPart = accessToken
+                    .substring(0, accessToken.indexOf('&'));
+            GitHub github = GitHub.connectUsingOAuth(meaningfulPart);
+            if (!github.isCredentialValid()) {
+                Log.e("FetchData", "Auth failed " + github);
+                return null;
+            }
+            return github;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public interface OnFragmentInteractionListener {
