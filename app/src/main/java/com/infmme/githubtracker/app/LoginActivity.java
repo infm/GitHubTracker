@@ -3,6 +3,7 @@ package com.infmme.githubtracker.app;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.webkit.WebView;
@@ -32,6 +33,7 @@ public class LoginActivity extends ActionBarActivity {
 
     private static final String CLIENT_ID = "db8b73bb88031a58b9cf";
     private static final String CLIENT_SECRET = "f27086c9422ffa2902866bc7fb7e72fe93a736c5";
+    private static final String SCOPES = "notifications,repo,user";
     private static final String CALLBACK_URL = "https://github.com/infm/GitHubTracker";
 
     @Override
@@ -39,7 +41,8 @@ public class LoginActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        String url = OAUTH_URL + "?client_id=" + CLIENT_ID;
+        String url = OAUTH_URL + "?client_id=" + CLIENT_ID +
+                "&scope=" + SCOPES;
 
         WebView webview = (WebView) findViewById(R.id.loginWebView);
         webview.getSettings().setJavaScriptEnabled(true);
@@ -70,23 +73,34 @@ public class LoginActivity extends ActionBarActivity {
                     view.postUrl(OAUTH_ACCESS_TOKEN_URL, query.getBytes());
 */
 
-                    String content = null;
                     // Executing POST request
                     try {
-                        content = new AccessTokenGetter().execute(accessCode).get();
+                        String content = new AccessTokenGetter().execute(accessCode).get();
+                        Log.d("Login", "content is " + content);
+                        String accessToken;
+                        if (content.contains(accessTokenFragment)) {
+                            accessToken = content.substring(accessTokenFragment.length());
+                        } else {
+                            Log.e("Login", "Access token not found");
+                            accessToken = "invalid";
+                        }
+                        PreferenceManager.getDefaultSharedPreferences(LoginActivity.this)
+                                         .edit()
+                                         .putString("accessToken", accessToken)
+                                         .apply();
+                        finish();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     } catch (ExecutionException e) {
                         e.printStackTrace();
                     }
-                    Log.d("Login", "content is " + content);
                 }
             }
         });
         webview.loadUrl(url);
     }
 
-    private static class AccessTokenGetter extends AsyncTask<String, Void, String>{
+    private static class AccessTokenGetter extends AsyncTask<String, Void, String> {
 
         @Override
         protected String doInBackground(String... params) {
@@ -95,22 +109,23 @@ public class LoginActivity extends ActionBarActivity {
             HttpClient httpclient = new DefaultHttpClient();
             HttpPost httppost = new HttpPost(OAUTH_ACCESS_TOKEN_URL);
 
-            List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(4);
-            nameValuePairs.add(new BasicNameValuePair("client_id", CLIENT_ID));
-            nameValuePairs.add(new BasicNameValuePair("client_secret", CLIENT_SECRET));
-            nameValuePairs.add(new BasicNameValuePair("code", accessCode));
-            nameValuePairs.add(new BasicNameValuePair("redirect_uri", CALLBACK_URL));
+            List<NameValuePair> resultPairs = new ArrayList<NameValuePair>(4);
+            resultPairs.add(new BasicNameValuePair("client_id", CLIENT_ID));
+            resultPairs.add(new BasicNameValuePair("client_secret", CLIENT_SECRET));
+            resultPairs.add(new BasicNameValuePair("code", accessCode));
+            resultPairs.add(new BasicNameValuePair("redirect_uri", CALLBACK_URL));
 
             String content = null;
             try {
                 HttpResponse response;
-                httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+                httppost.setEntity(new UrlEncodedFormEntity(resultPairs));
                 response = httpclient.execute(httppost);
 
                 // Get the response content
                 String line;
                 StringBuilder contentBuilder = new StringBuilder();
-                BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+                BufferedReader rd = new BufferedReader(
+                        new InputStreamReader(response.getEntity().getContent()));
                 while ((line = rd.readLine()) != null) {
                     contentBuilder.append(line);
                 }
