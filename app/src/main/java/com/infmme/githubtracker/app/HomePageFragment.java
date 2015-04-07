@@ -13,7 +13,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
-import android.widget.ViewSwitcher;
+import android.widget.ViewFlipper;
 import org.kohsuke.github.GHNotificationStream;
 import org.kohsuke.github.GHThread;
 import org.kohsuke.github.GitHub;
@@ -26,9 +26,10 @@ public class HomePageFragment extends Fragment {
 
     private OnFragmentInteractionListener mListener;
 
-    private ViewSwitcher mViewSwitcher;
+    private ViewFlipper mViewFlipper;
     private ListView mListView;
     private View mEmptyView;
+    private View mErrorView;
 
     private Handler mHandler;
 
@@ -69,7 +70,7 @@ public class HomePageFragment extends Fragment {
         Context context = getActivity();
         mAdapter = new NotificationsAdapter(context);
         mListView.setAdapter(mAdapter);
-        mViewSwitcher.showNext();
+        mViewFlipper.showNext();
     }
 
     @Override
@@ -105,9 +106,10 @@ public class HomePageFragment extends Fragment {
     }
 
     private void findViews(View view) {
-        mViewSwitcher = (ViewSwitcher) view.findViewById(R.id.viewSwitcher);
-        mListView = (ListView) mViewSwitcher.findViewById(R.id.listViewHomePage);
-        mEmptyView = mViewSwitcher.findViewById(R.id.listViewHomePageEmptyView);
+        mViewFlipper = (ViewFlipper) view.findViewById(R.id.viewFlipper);
+        mListView = (ListView) mViewFlipper.findViewById(R.id.listViewHomePage);
+        mEmptyView = mViewFlipper.findViewById(R.id.listViewHomePageEmptyView);
+        mErrorView = mViewFlipper.findViewById(R.id.listViewHomePageErrorView);
     }
 
     private void fetchData(final Context context, final NotificationsAdapter adapter) {
@@ -141,8 +143,8 @@ public class HomePageFragment extends Fragment {
                                                                     thread.getReason()));
                                     }
                                     adapter.notifyDataSetChanged();
-                                    if (mViewSwitcher.getCurrentView() == mEmptyView)
-                                        mViewSwitcher.showPrevious();
+                                    while (mViewFlipper.getCurrentView() != mListView)
+                                        mViewFlipper.showPrevious();
                                 }
                             };
                         } else {
@@ -152,6 +154,8 @@ public class HomePageFragment extends Fragment {
                                 @Override
                                 public void run() {
                                     startActivity(new Intent(context, LoginActivity.class));
+                                    while (mViewFlipper.getCurrentView() != mErrorView)
+                                        mViewFlipper.showNext();
                                 }
                             };
                         }
