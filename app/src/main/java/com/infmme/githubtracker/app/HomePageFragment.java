@@ -18,6 +18,8 @@ import org.kohsuke.github.GHThread;
 import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class HomePageFragment extends Fragment {
 
@@ -25,8 +27,11 @@ public class HomePageFragment extends Fragment {
 
     private ViewSwitcher mViewSwitcher;
     private ListView mListView;
+    private View mEmptyView;
 
     private Handler mHandler;
+
+    private NotificationsAdapter mAdapter;
 
     // TODO: Rename and change types and number of parameters
     public static HomePageFragment newInstance() {
@@ -60,7 +65,12 @@ public class HomePageFragment extends Fragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        fetchData(getActivity());
+        Context context = getActivity();
+        mAdapter = new NotificationsAdapter(context);
+        mListView.setAdapter(mAdapter);
+        mViewSwitcher.showNext();
+
+        fetchData(context, mAdapter);
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -80,7 +90,7 @@ public class HomePageFragment extends Fragment {
                                                  + " must implement OnFragmentInteractionListener");
         }
     }
-    //32f4406937f2808ea08302627b16e25915632842
+
     @Override
     public void onDetach() {
         super.onDetach();
@@ -89,10 +99,11 @@ public class HomePageFragment extends Fragment {
 
     private void findViews(View view) {
         mViewSwitcher = (ViewSwitcher) view.findViewById(R.id.viewSwitcher);
-        mListView = (ListView) view.findViewById(R.id.listViewHomePage);
+        mListView = (ListView) mViewSwitcher.findViewById(R.id.listViewHomePage);
+        mEmptyView = mViewSwitcher.findViewById(R.id.listViewHomePageEmptyView);
     }
-    //56dd50eb5a9fc8966693333e4b54aae59da58535&scope=notifications%2Crepo%2Cuser&token_type=bearer
-    private void fetchData(final Context context) {
+
+    private void fetchData(final Context context, final NotificationsAdapter adapter) {
         final String accessToken = PreferenceManager.getDefaultSharedPreferences(context)
                                                     .getString("accessToken", "invalid");
         if (!"invalid".equals(accessToken)) {
@@ -102,7 +113,8 @@ public class HomePageFragment extends Fragment {
                     final String logTag = "FetchData";
                     try {
                         GitHub github =
-                                GitHub.connectUsingOAuth("56dd50eb5a9fc8966693333e4b54aae59da58535");
+                                GitHub.connectUsingOAuth(accessToken.substring(0, accessToken
+                                        .indexOf('&')));
                         if (!github.isCredentialValid()) {
                             Log.e(logTag, "Auth failed " + github);
                             return;
@@ -110,13 +122,26 @@ public class HomePageFragment extends Fragment {
                         Log.d(logTag, "Me: " + github.getMyself().getName());
                         GHNotificationStream stream = github.listNotifications();
                         stream.nonBlocking(true);
-                        for (GHThread thread : stream) {
-                            Log.d(logTag, String.format("Repo: %s; Title: %s; type: %s; reason: " +
-                                                                "%s;",
-                                                        thread.getRepository(),
-                                                        thread.getTitle(), thread.getType(),
-                                                        thread.getReason()));
-                        }
+                        final List<GHThread> threadList = new ArrayList<GHThread>();
+                        for (GHThread thread : stream)
+                            threadList.add(thread);
+                        mHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                adapter.clear();
+                                for (GHThread thread : threadList) {
+                                    mAdapter.add(thread);
+                                    Log.d(logTag, String.format("Repo: %s; Title: %s; type: %s; reason: " +
+                                                                        "%s;",
+                                                                thread.getRepository(),
+                                                                thread.getTitle(), thread.getType(),
+                                                                thread.getReason()));
+                                }
+                                adapter.notifyDataSetChanged();
+                                if (mViewSwitcher.getCurrentView() == mEmptyView)
+                                    mViewSwitcher.showPrevious();
+                            }
+                        });
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -129,4 +154,5 @@ public class HomePageFragment extends Fragment {
         // TODO: Update argument type and name
         public void onFragmentInteraction(Uri uri);
     }
+
 }
