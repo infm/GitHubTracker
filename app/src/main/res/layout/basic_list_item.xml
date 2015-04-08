@@ -9,7 +9,7 @@
             android:layout_height="match_parent"
             android:id="@+id/listItemEventType"
             android:src="@mipmap/ic_launcher"
-            android:layout_weight="1"/>
+            android:layout_weight="1" android:layout_margin="10dp"/>
     <LinearLayout
             android:orientation="vertical"
             android:layout_width="0dp"
@@ -47,7 +47,7 @@
                     android:text="Detailed message"
                     android:id="@+id/infoDetailedMessage"
                     android:textSize="12sp"
-                    android:layout_weight="9" android:layout_margin="3dp"/>
+                    android:layout_weight="9" android:layout_margin="3dp" android:maxLength="140"/>
 
         </LinearLayout>
     </LinearLayout>

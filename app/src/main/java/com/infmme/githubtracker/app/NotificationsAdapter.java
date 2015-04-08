@@ -1,6 +1,7 @@
 package com.infmme.githubtracker.app;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,6 +10,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.infmme.githubtracker.app.util.GHThreadPreview;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 
@@ -38,7 +40,7 @@ public class NotificationsAdapter extends ArrayAdapter<GHThreadPreview> {
         } else {
             holder = (ViewHolder) convertView.getTag();
         }
-        holder.update(getItem(position));
+        holder.update(getItem(position), getContext());
         return convertView;
     }
 
@@ -75,10 +77,20 @@ public class NotificationsAdapter extends ArrayAdapter<GHThreadPreview> {
                     .findViewById(R.id.infoDetailedMessage);
         }
 
-        public void update(GHThreadPreview curr) {
+        public void update(GHThreadPreview curr, Context context) {
             timeLapsedTextView.setText(curr.timeLapsed);
             mainMessageTextView.setText(curr.mainMessage);
             detailedMessageTextView.setText(curr.detailedMessage);
+
+            Picasso.with(context)
+                   .load(curr.eventTypeResId)
+                   .into(eventTypeImageView);
+
+            if (!TextUtils.isEmpty(curr.userPicUrl))
+                Picasso.with(context)
+                       .load(curr.userPicUrl)
+                       .resize(50, 50)
+                       .into(userImageView);
         }
     }
 }
