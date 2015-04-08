@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.ViewFlipper;
+import com.infmme.githubtracker.app.util.GHThreadPreview;
 import org.kohsuke.github.GHNotificationStream;
 import org.kohsuke.github.GHThread;
 import org.kohsuke.github.GitHub;
@@ -122,26 +123,20 @@ public class HomePageFragment extends Fragment {
                     final String logTag = "FetchData";
                     try {
                         GitHub github = authorize(accessToken);
-                        Runnable task = null;
+                        Runnable task;
                         if (null != github) {
                             Log.d(logTag, "Me: " + github.getMyself().getName());
                             GHNotificationStream stream = github.listNotifications();
                             stream.nonBlocking(true);
-                            final List<GHThread> threadList = new ArrayList<GHThread>();
+                            final List<GHThreadPreview> threadList =
+                                    new ArrayList<GHThreadPreview>();
                             for (GHThread thread : stream)
-                                threadList.add(thread);
+                                threadList.add(GHThreadPreview.fromGHThread(thread));
                             task = new Runnable() {
                                 @Override
                                 public void run() {
                                     adapter.clear();
-                                    for (GHThread thread : threadList) {
-                                        mAdapter.add(thread);
-                                        Log.d(logTag, String.format("Repo: %s; Title: %s; type: %s; reason: " +
-                                                                            "%s;",
-                                                                    thread.getRepository(),
-                                                                    thread.getTitle(), thread.getType(),
-                                                                    thread.getReason()));
-                                    }
+                                    mAdapter.addAll(threadList);
                                     adapter.notifyDataSetChanged();
                                     while (mViewFlipper.getCurrentView() != mListView)
                                         mViewFlipper.showPrevious();

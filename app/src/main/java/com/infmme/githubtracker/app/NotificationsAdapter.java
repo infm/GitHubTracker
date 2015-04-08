@@ -8,15 +8,14 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import org.kohsuke.github.GHThread;
+import com.infmme.githubtracker.app.util.GHThreadPreview;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
 /**
  * infm created it with love on 4/7/15. Enjoy ;)
  */
-public class NotificationsAdapter extends ArrayAdapter<GHThread> {
+public class NotificationsAdapter extends ArrayAdapter<GHThreadPreview> {
     private static final int VIEW_TYPE_COUNT = 2;
 
     private static final int VIEW_TYPE_NIL = 0;
@@ -25,14 +24,13 @@ public class NotificationsAdapter extends ArrayAdapter<GHThread> {
     private LayoutInflater mLayoutInflater;
 
     public NotificationsAdapter(Context context) {
-        super(context, 0, new ArrayList<GHThread>());
+        super(context, 0, new ArrayList<GHThreadPreview>());
         mLayoutInflater = LayoutInflater.from(context);
     }
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         ViewHolder holder;
-        GHThread currThread = getItem(position);
         if (null == convertView) {
             convertView = mLayoutInflater.inflate(R.layout.basic_list_item, parent, false);
             holder = new ViewHolder(convertView);
@@ -40,13 +38,7 @@ public class NotificationsAdapter extends ArrayAdapter<GHThread> {
         } else {
             holder = (ViewHolder) convertView.getTag();
         }
-        try {
-            holder.timeLapsedTextView.setText(currThread.getUpdatedAt().toString());
-            holder.mainMessageTextView.setText(currThread.getTitle());
-            holder.detailedMessageTextView.setText(currThread.getType());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        holder.update(getItem(position));
         return convertView;
     }
 
@@ -81,6 +73,12 @@ public class NotificationsAdapter extends ArrayAdapter<GHThread> {
             userImageView = (ImageView) additionalInfoLayout.findViewById(R.id.infoUserImage);
             detailedMessageTextView = (TextView) additionalInfoLayout
                     .findViewById(R.id.infoDetailedMessage);
+        }
+
+        public void update(GHThreadPreview curr) {
+            timeLapsedTextView.setText(curr.timeLapsed);
+            mainMessageTextView.setText(curr.mainMessage);
+            detailedMessageTextView.setText(curr.detailedMessage);
         }
     }
 }
