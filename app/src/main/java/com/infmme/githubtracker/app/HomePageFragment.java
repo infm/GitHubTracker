@@ -12,6 +12,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.ViewFlipper;
 import com.infmme.githubtracker.app.util.GHThreadPreview;
@@ -21,6 +22,7 @@ import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class HomePageFragment extends Fragment {
@@ -71,6 +73,14 @@ public class HomePageFragment extends Fragment {
         Context context = getActivity();
         mAdapter = new NotificationsAdapter(context);
         mListView.setAdapter(mAdapter);
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                startActivity(new Intent(Intent.ACTION_VIEW)
+                                      .setData(Uri.parse(mAdapter.getItem(position).threadUrl)));
+            }
+        });
+
         mViewFlipper.showNext();
     }
 
@@ -132,6 +142,7 @@ public class HomePageFragment extends Fragment {
                                     new ArrayList<GHThreadPreview>();
                             for (GHThread thread : stream)
                                 threadList.add(GHThreadPreview.fromGHThread(thread));
+                            Collections.reverse(threadList);
                             task = new Runnable() {
                                 @Override
                                 public void run() {

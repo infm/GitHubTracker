@@ -89,7 +89,7 @@ public class NotificationsAdapter extends ArrayAdapter<GHThreadPreview> {
             if (!TextUtils.isEmpty(curr.userPicUrl))
                 Picasso.with(context)
                        .load(curr.userPicUrl)
-                       .resize(50, 50)
+                       .resize(100, 100)
                        .into(userImageView);
         }
     }
