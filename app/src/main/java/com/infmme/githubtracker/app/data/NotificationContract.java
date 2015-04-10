@@ -17,7 +17,7 @@ public class NotificationContract {
         public static final String COLUMN_TYPE = "type";
         public static final String COLUMN_TITLE = "title";
         public static final String COLUMN_TIME = "time";
-        public static final String COLUMN_USER_ID = "user_id";
+        public static final String COLUMN_USER_PIC = "user_pic_path";
         public static final String COLUMN_INFO = "info";
     }
 }

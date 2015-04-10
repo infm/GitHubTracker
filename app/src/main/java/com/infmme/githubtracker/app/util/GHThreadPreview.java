@@ -1,11 +1,22 @@
 package com.infmme.githubtracker.app.util;
 
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
 import com.infmme.githubtracker.app.R;
+import com.infmme.githubtracker.app.data.NotificationContract;
+import com.infmme.githubtracker.app.data.NotificationDbHelper;
+import com.infmme.githubtracker.app.data.NotificationsContentProvider;
 import org.kohsuke.github.*;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * infm created it with love on 4/8/15. Enjoy ;)
@@ -17,8 +28,39 @@ public class GHThreadPreview {
 
     public int eventTypeResId;
     public String userPicUrl;
+    public String userPicPath;
 
     public String threadUrl;
+
+    private String eventTypeRaw;
+    private String userName;
+
+    private static final Map<String, Integer> eventTypeMap;
+
+    static {
+        eventTypeMap = new HashMap<String, Integer>();
+        eventTypeMap.put("Issue", R.drawable.issue_opened);
+        eventTypeMap.put("PullRequest", R.drawable.pull_request);
+        eventTypeMap.put("Commit", R.drawable.git_commit);
+    }
+
+    public static GHThreadPreview fromCursor(Cursor c) {
+        GHThreadPreview result = null;
+        if (null != c) {
+            result = new GHThreadPreview();
+            result.timeLapsed = c.getString(NotificationDbHelper.CNUM_TIME);
+            result.mainMessage = c.getString(NotificationDbHelper.CNUM_TITLE);
+            result.detailedMessage = c.getString(NotificationDbHelper.CNUM_INFO);
+
+            result.eventTypeRaw = c.getString(NotificationDbHelper.CNUM_TYPE);
+            result.eventTypeResId = (eventTypeMap.containsKey(result.eventTypeRaw))
+                    ? eventTypeMap.get(result.eventTypeRaw)
+                    : R.mipmap.ic_launcher;
+
+            result.userPicPath = c.getString(NotificationDbHelper.CNUM_USER_PIC);
+        }
+        return result;
+    }
 
     public static GHThreadPreview fromGHThread(GHThread currThread) throws IOException {
         GHThreadPreview result = new GHThreadPreview();
@@ -26,8 +68,8 @@ public class GHThreadPreview {
                 .format(currThread.getUpdatedAt());
         result.mainMessage = currThread.getTitle();
 
-        String type = currThread.getType();
-        if ("Issue".equals(type)) {
+        result.eventTypeRaw = currThread.getType();
+        if ("Issue".equals(result.eventTypeRaw)) {
             GHIssue issue = currThread.getBoundIssue();
             List<GHIssueComment> comments = issue.getComments();
             if (!comments.isEmpty()) {
@@ -38,9 +80,9 @@ public class GHThreadPreview {
                 result.detailedMessage = issue.getBody();
                 result.userPicUrl = issue.getUser().getAvatarUrl();
             }
-            result.eventTypeResId = R.drawable.issue_opened;
             result.threadUrl = issue.getHtmlUrl().toString();
-        } else if ("PullRequest".equals(type)) {
+            result.userName = issue.getUser().getLogin();
+        } else if ("PullRequest".equals(result.eventTypeRaw)) {
             GHPullRequest pullRequest = currThread.getBoundPullRequest();
             List<GHIssueComment> comments = pullRequest.getComments();
             if (!comments.isEmpty()) {
@@ -51,23 +93,71 @@ public class GHThreadPreview {
                 result.detailedMessage = pullRequest.getBody();
                 result.userPicUrl = pullRequest.getUser().getAvatarUrl();
             }
-            result.eventTypeResId = R.drawable.pull_request;
             result.threadUrl = pullRequest.getHtmlUrl().toString();
-        } else if ("Commit".equals(type)) {
+            result.userName = pullRequest.getUser().getLogin();
+        } else if ("Commit".equals(result.eventTypeRaw)) {
             GHCommit commit = currThread.getBoundCommit();
             result.detailedMessage = commit.getCommitShortInfo().getMessage();
-            result.eventTypeResId = R.drawable.git_commit;
             result.userPicUrl = commit.getAuthor().getAvatarUrl();
             result.threadUrl = commit.getOwner().getSvnUrl() + "/commit/" + commit.getSHA1();
+            result.userName = commit.getAuthor().getLogin();
         } else {
-            result.detailedMessage = currThread.getRepository().getFullName();
-            result.eventTypeResId = R.mipmap.ic_launcher;
-            result.userPicUrl = "";
-            result.threadUrl = "";
+            result.detailedMessage = "ERROR OCCURRED";
+            result.userPicUrl = currThread.getRepository().getOwner().getAvatarUrl();
+            result.threadUrl = currThread.getRepository().getSvnUrl();
+            result.userName = currThread.getRepository().getOwner().getLogin();
         }
 
+        result.eventTypeResId = (eventTypeMap.containsKey(result.eventTypeRaw))
+                ? eventTypeMap.get(result.eventTypeRaw)
+                : R.mipmap.ic_launcher;
         return result;
     }
 
+    public void addToDb(Context context) throws IOException {
+        ContentValues cv = new ContentValues();
+        cv.put(NotificationContract.NotificationEntry.COLUMN_TYPE, eventTypeRaw);
+        cv.put(NotificationContract.NotificationEntry.COLUMN_TITLE, mainMessage);
+        cv.put(NotificationContract.NotificationEntry.COLUMN_TIME, timeLapsed);
+
+        userPicPath = savePic(context);
+        if (null != userPicPath)
+            cv.put(NotificationContract.NotificationEntry.COLUMN_USER_PIC, userPicPath);
+        else
+            throw new IOException("Path to a picture is null");
+        cv.put(NotificationContract.NotificationEntry.COLUMN_INFO, detailedMessage);
+
+        context.getContentResolver().insert(NotificationsContentProvider.CONTENT_URI, cv);
+    }
+
     private GHThreadPreview() {}
+
+    private String savePic(Context context) throws IOException {
+        String outputName = userName + "-thumbnail.jpg";
+        if (context.getFileStreamPath(outputName).exists())
+            return outputName;
+
+        URL url = new URL(userPicUrl);
+
+        InputStream input = null;
+        FileOutputStream output = null;
+
+        try {
+
+            input = url.openConnection().getInputStream();
+            output = context.openFileOutput(outputName, Context.MODE_PRIVATE);
+
+            int read;
+            byte[] data = new byte[4096];
+            while ((read = input.read(data)) != -1)
+                output.write(data, 0, read);
+
+            return outputName;
+        } finally {
+            if (output != null)
+                output.close();
+            if (input != null)
+                input.close();
+        }
+    }
 }

@@ -1,23 +1,22 @@
 package com.infmme.githubtracker.app;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.support.v4.widget.CursorAdapter;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.infmme.githubtracker.app.util.GHThreadPreview;
 import com.squareup.picasso.Picasso;
 
-import java.util.ArrayList;
-
 /**
  * infm created it with love on 4/7/15. Enjoy ;)
  */
-public class NotificationsAdapter extends ArrayAdapter<GHThreadPreview> {
+public class NotificationsAdapter extends CursorAdapter {
     private static final int VIEW_TYPE_COUNT = 2;
 
     private static final int VIEW_TYPE_NIL = 0;
@@ -26,22 +25,22 @@ public class NotificationsAdapter extends ArrayAdapter<GHThreadPreview> {
     private LayoutInflater mLayoutInflater;
 
     public NotificationsAdapter(Context context) {
-        super(context, 0, new ArrayList<GHThreadPreview>());
+        super(context, null, 0);
         mLayoutInflater = LayoutInflater.from(context);
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        ViewHolder holder;
-        if (null == convertView) {
-            convertView = mLayoutInflater.inflate(R.layout.basic_list_item, parent, false);
-            holder = new ViewHolder(convertView);
-            convertView.setTag(holder);
-        } else {
-            holder = (ViewHolder) convertView.getTag();
-        }
-        holder.update(getItem(position), getContext());
-        return convertView;
+    public View newView(Context context, Cursor cursor, ViewGroup parent) {
+        View view = mLayoutInflater.inflate(R.layout.basic_list_item, parent, false);
+        ViewHolder holder = new ViewHolder(view);
+        view.setTag(holder);
+        return view;
+    }
+
+    @Override
+    public void bindView(View view, Context context, Cursor cursor) {
+        ViewHolder holder = (ViewHolder) view.getTag();
+        holder.update(GHThreadPreview.fromCursor(cursor), mContext);
     }
 
     @Override
@@ -86,9 +85,9 @@ public class NotificationsAdapter extends ArrayAdapter<GHThreadPreview> {
                    .load(curr.eventTypeResId)
                    .into(eventTypeImageView);
 
-            if (!TextUtils.isEmpty(curr.userPicUrl))
+            if (!TextUtils.isEmpty(curr.userPicPath))
                 Picasso.with(context)
-                       .load(curr.userPicUrl)
+                       .load(curr.userPicPath)
                        .resize(100, 100)
                        .into(userImageView);
         }

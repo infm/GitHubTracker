@@ -1,54 +1,77 @@
 package com.infmme.githubtracker.app.service;
 
 import android.app.IntentService;
+import android.content.Context;
 import android.content.Intent;
-import android.text.TextUtils;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.util.Log;
+import com.infmme.githubtracker.app.util.GHThreadPreview;
 import org.kohsuke.github.GHNotificationStream;
+import org.kohsuke.github.GHThread;
 import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * infm created it with love on 4/7/15. Enjoy ;)
  */
 public class FetchService extends IntentService {
-    /**
-     * Creates an IntentService.  Invoked by your subclass's constructor.
-     *
-     * @param name Used to name the worker thread, important only for debugging.
-     */
-    public FetchService(String name) {
+    private static final String LAST_UPDATED_KEY = "last_updated";
+    private static final String ACCESS_TOKEN_KEY = "accessToken";
+
+    private static final String LOGTAG = FetchService.class.getName();
+
+    public FetchService() {
         super(FetchService.class.getName());
     }
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        String accessToken = intent.getStringExtra("accessToken");
-        if (!TextUtils.isEmpty(accessToken) && !"invalid".equals(accessToken)) {
-            final String logTag = "FetchData";
-            try {
-                GitHub github =
-                        GitHub.connectUsingOAuth("56dd50eb5a9fc8966693333e4b54aae59da58535");
-                if (!github.isCredentialValid()) {
-                    Log.e(logTag, "Auth failed " + github);
-                    return;
-                }
-                Log.d(logTag, "Me: " + github.getMyself().getName());
-                GHNotificationStream stream = github.listNotifications();
+        try {
+            Context context = getApplicationContext();
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+            String accessToken = prefs.getString(ACCESS_TOKEN_KEY, "invalid");
+
+            GitHub github = authorize(accessToken);
+            if (null != github) {
+                Log.d(LOGTAG, "Me: " + github.getMyself().getName());
+                long lastUpdated = prefs.getLong(LAST_UPDATED_KEY, 0);
+
+                GHNotificationStream stream = github.listNotifications().since(lastUpdated);
                 stream.nonBlocking(true);
-/*
-                        for (GHThread thread : stream) {
-                            Log.d(logTag, String.format("Repo: %s; Title: %s; type: %s; reason: " +
-                                                                "%s;",
-                                                        thread.getRepository(),
-                                                        thread.getTitle(), thread.getType(),
-                                                        thread.getReason()));
-                        }
-*/
-            } catch (IOException e) {
-                e.printStackTrace();
+                final List<GHThreadPreview> threadList = new ArrayList<GHThreadPreview>();
+                for (GHThread thread : stream)
+                    threadList.add(GHThreadPreview.fromGHThread(thread));
+                Collections.reverse(threadList);
+                for (GHThreadPreview thp : threadList)
+                    thp.addToDb(context);
+
+                prefs.edit().putLong(LAST_UPDATED_KEY, System.currentTimeMillis()).commit();
+            } else {
+                prefs.edit().putString(ACCESS_TOKEN_KEY, "invalid").commit();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+    }
+
+    private GitHub authorize(String accessToken) {
+        try {
+            String meaningfulPart = accessToken
+                    .substring(0, accessToken.indexOf('&'));
+            GitHub github = GitHub.connectUsingOAuth(meaningfulPart);
+            if (!github.isCredentialValid()) {
+                Log.e(LOGTAG, "Auth failed " + github);
+                return null;
+            }
+            return github;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
