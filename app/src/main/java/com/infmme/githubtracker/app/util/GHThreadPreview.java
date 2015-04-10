@@ -30,25 +30,29 @@ public class GHThreadPreview {
         if ("Issue".equals(type)) {
             GHIssue issue = currThread.getBoundIssue();
             List<GHIssueComment> comments = issue.getComments();
-            GHIssueComment comment = null;
             if (!comments.isEmpty()) {
-                comment = comments.get(comments.size() - 1);
+                GHIssueComment comment = comments.get(comments.size() - 1);
                 result.detailedMessage = comment.getBody();
+                result.userPicUrl = comment.getUser().getAvatarUrl();
+            } else {
+                result.detailedMessage = issue.getBody();
+                result.userPicUrl = issue.getUser().getAvatarUrl();
             }
             result.eventTypeResId = R.drawable.issue_opened;
-            result.userPicUrl = (null != comment) ? comment.getUser().getAvatarUrl() : "";
-            result.threadUrl = (null != comment) ? issue.getHtmlUrl().toString() : "";
+            result.threadUrl = issue.getHtmlUrl().toString();
         } else if ("PullRequest".equals(type)) {
             GHPullRequest pullRequest = currThread.getBoundPullRequest();
             List<GHIssueComment> comments = pullRequest.getComments();
-            GHIssueComment comment = null;
             if (!comments.isEmpty()) {
-                comment = comments.get(comments.size() - 1);
+                GHIssueComment comment = comments.get(comments.size() - 1);
                 result.detailedMessage = comment.getBody();
+                result.userPicUrl = comment.getUser().getAvatarUrl();
+            } else {
+                result.detailedMessage = pullRequest.getBody();
+                result.userPicUrl = pullRequest.getUser().getAvatarUrl();
             }
             result.eventTypeResId = R.drawable.pull_request;
-            result.userPicUrl = (null != comment) ? comment.getUser().getAvatarUrl() : "";
-            result.threadUrl = (null != comment) ? pullRequest.getHtmlUrl().toString() : "";
+            result.threadUrl = pullRequest.getHtmlUrl().toString();
         } else if ("Commit".equals(type)) {
             GHCommit commit = currThread.getBoundCommit();
             result.detailedMessage = commit.getCommitShortInfo().getMessage();
@@ -59,6 +63,7 @@ public class GHThreadPreview {
             result.detailedMessage = currThread.getRepository().getFullName();
             result.eventTypeResId = R.mipmap.ic_launcher;
             result.userPicUrl = "";
+            result.threadUrl = "";
         }
 
         return result;

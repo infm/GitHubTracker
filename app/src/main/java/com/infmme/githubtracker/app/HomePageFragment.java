@@ -7,13 +7,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 import android.widget.ViewFlipper;
 import com.infmme.githubtracker.app.util.GHThreadPreview;
 import org.kohsuke.github.GHNotificationStream;
@@ -55,6 +55,7 @@ public class HomePageFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
 
         mHandler = new Handler();
     }
@@ -87,9 +88,11 @@ public class HomePageFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+/*
         Context context = getActivity();
         if (null != context && null != mAdapter)
             fetchData(context, mAdapter);
+*/
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -123,7 +126,8 @@ public class HomePageFragment extends Fragment {
         mErrorView = mViewFlipper.findViewById(R.id.listViewHomePageErrorView);
     }
 
-    private void fetchData(final Context context, final NotificationsAdapter adapter) {
+    private void fetchData(@NonNull final Context context,
+                           @NonNull final NotificationsAdapter adapter) {
         final String accessToken = PreferenceManager.getDefaultSharedPreferences(context)
                                                     .getString("accessToken", "invalid");
         if (!"invalid".equals(accessToken)) {
@@ -188,6 +192,26 @@ public class HomePageFragment extends Fragment {
             e.printStackTrace();
         }
         return null;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.homepage_fragment, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_fetch:
+                Context context = getActivity();
+                Toast.makeText(context, "Fetching started", Toast.LENGTH_SHORT).show();
+                fetchData(context, mAdapter);
+                break;
+            default:
+                return false;
+        }
+        return true;
     }
 
     public interface OnFragmentInteractionListener {
