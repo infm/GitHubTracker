@@ -7,9 +7,7 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.widget.*;
 import com.infmme.githubtracker.app.util.GHThreadPreview;
 import com.squareup.picasso.Picasso;
 
@@ -19,8 +17,8 @@ import com.squareup.picasso.Picasso;
 public class NotificationsAdapter extends CursorAdapter {
     private static final int VIEW_TYPE_COUNT = 2;
 
-    private static final int VIEW_TYPE_NIL = 0;
-    private static final int VIEW_TYPE_FIRST = 1;
+    private static final int VIEW_TYPE_ACTION = 0;
+    private static final int VIEW_TYPE_CONTENT = 1;
 
     private LayoutInflater mLayoutInflater;
 
@@ -31,21 +29,41 @@ public class NotificationsAdapter extends CursorAdapter {
 
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
-        View view = mLayoutInflater.inflate(R.layout.basic_list_item, parent, false);
-        ViewHolder holder = new ViewHolder(view);
-        view.setTag(holder);
+        View view = null;
+        switch (getItemViewType(cursor.getPosition())) {
+            case VIEW_TYPE_ACTION:
+                view = mLayoutInflater.inflate(R.layout.action_list_item, parent, false);
+                ActionViewHolder actionViewHolder = new ActionViewHolder(view);
+                view.setTag(actionViewHolder);
+                break;
+            case VIEW_TYPE_CONTENT:
+                view = mLayoutInflater.inflate(R.layout.basic_list_item, parent, false);
+                NotificationViewHolder notifViewHolder = new NotificationViewHolder(view);
+                view.setTag(notifViewHolder);
+                break;
+        }
         return view;
     }
 
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
-        ViewHolder holder = (ViewHolder) view.getTag();
-        holder.update(GHThreadPreview.fromCursor(cursor), mContext);
+        switch (getItemViewType(cursor.getPosition())){
+            case VIEW_TYPE_ACTION:
+                ActionViewHolder actionViewHolder = (ActionViewHolder) view.getTag();
+                actionViewHolder.repoName.setText("ALL NOTIFS");
+                break;
+            case VIEW_TYPE_CONTENT:
+                NotificationViewHolder notifViewHolder = (NotificationViewHolder) view.getTag();
+                notifViewHolder.update(GHThreadPreview.fromCursor(cursor), mContext);
+                break;
+        }
     }
 
     @Override
     public int getItemViewType(int position) {
-        return 0;
+        return (0 == position)
+                ? VIEW_TYPE_ACTION
+                : VIEW_TYPE_CONTENT;
     }
 
     @Override
@@ -53,7 +71,7 @@ public class NotificationsAdapter extends CursorAdapter {
         return VIEW_TYPE_COUNT;
     }
 
-    private static class ViewHolder {
+    private static class NotificationViewHolder {
         public ImageView eventTypeImageView;
 
         public LinearLayout infoLayout;
@@ -64,7 +82,7 @@ public class NotificationsAdapter extends CursorAdapter {
         public ImageView userImageView;
         public TextView detailedMessageTextView;
 
-        public ViewHolder(View view) {
+        public NotificationViewHolder(View view) {
             eventTypeImageView = (ImageView) view.findViewById(R.id.listItemEventType);
             infoLayout = (LinearLayout) view.findViewById(R.id.listItemInfo);
             timeLapsedTextView = (TextView) infoLayout.findViewById(R.id.infoTimeLapsed);
@@ -90,6 +108,16 @@ public class NotificationsAdapter extends CursorAdapter {
                        .load(curr.userPicPath)
                        .resize(100, 100)
                        .into(userImageView);
+        }
+    }
+
+    private static class ActionViewHolder {
+        public TextView repoName;
+        public Button buttonCancel;
+
+        public ActionViewHolder(View view) {
+            repoName = (TextView) view.findViewById(R.id.action_item_repo_name);
+            buttonCancel = (Button) view.findViewById(R.id.action_item_button_cancel);
         }
     }
 }

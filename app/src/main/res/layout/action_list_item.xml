@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="horizontal"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="#ff646464"
+              android:weightSum="8">
+
+    <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Repo name"
+            android:id="@+id/action_item_repo_name" android:layout_gravity="center_vertical"
+            android:layout_weight="7" android:paddingLeft="30dp"
+            android:gravity="center_vertical"
+            android:textColor="@android:color/white" android:textStyle="bold"
+            android:textSize="22sp"/>
+    <Button
+            android:layout_width="0px"
+            android:layout_height="wrap_content"
+            android:id="@+id/action_item_button_cancel" android:layout_gravity="center|end"
+            android:layout_weight="1"
+            android:background="@drawable/action_item_button"/>
+</LinearLayout>

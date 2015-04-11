@@ -12,9 +12,8 @@ import org.kohsuke.github.GHThread;
 import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * infm created it with love on 4/7/15. Enjoy ;)
@@ -39,7 +38,9 @@ public class FetchService extends IntentService {
             GitHub github = authorize(accessToken);
             if (null != github) {
                 Log.d(LOGTAG, "Me: " + github.getMyself().getName());
-                long lastUpdated = prefs.getLong(LAST_UPDATED_KEY, 0);
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTimeInMillis(prefs.getLong(LAST_UPDATED_KEY, 0));
+                Date lastUpdated = calendar.getTime();
 
                 GHNotificationStream stream = github.listNotifications().since(lastUpdated);
                 stream.nonBlocking(true);
@@ -47,6 +48,10 @@ public class FetchService extends IntentService {
                 for (GHThread thread : stream)
                     threadList.add(GHThreadPreview.fromGHThread(thread));
                 Collections.reverse(threadList);
+                Log.d(LOGTAG, String.format("Fetched %d notifications from %s",
+                                            threadList.size(),
+                                            new SimpleDateFormat("dd/MM/yy HH: mm")
+                                                    .format(lastUpdated)));
                 for (GHThreadPreview thp : threadList)
                     thp.addToDb(context);
 
