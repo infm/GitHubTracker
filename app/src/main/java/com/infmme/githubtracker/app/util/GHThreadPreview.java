@@ -58,13 +58,14 @@ public class GHThreadPreview {
                     : R.mipmap.ic_launcher;
 
             result.userPicPath = c.getString(NotificationDbHelper.CNUM_USER_PIC);
+            result.threadUrl = c.getString(NotificationDbHelper.CNUM_THREAD_URL);
         }
         return result;
     }
 
     public static GHThreadPreview fromGHThread(GHThread currThread) throws IOException {
         GHThreadPreview result = new GHThreadPreview();
-        result.timeLapsed = new SimpleDateFormat("HH:mm MM/dd")
+        result.timeLapsed = new SimpleDateFormat("MM/dd HH:mm")
                 .format(currThread.getUpdatedAt());
         result.mainMessage = currThread.getTitle();
 
@@ -125,7 +126,9 @@ public class GHThreadPreview {
             cv.put(NotificationContract.NotificationEntry.COLUMN_USER_PIC, userPicPath);
         else
             throw new IOException("Path to a picture is null");
+
         cv.put(NotificationContract.NotificationEntry.COLUMN_INFO, detailedMessage);
+        cv.put(NotificationContract.NotificationEntry.COLUMN_THREAD_URL, threadUrl);
 
         context.getContentResolver().insert(NotificationsContentProvider.CONTENT_URI, cv);
     }

@@ -71,6 +71,12 @@ public class NotificationsAdapter extends CursorAdapter {
         return VIEW_TYPE_COUNT;
     }
 
+    public GHThreadPreview getItemPreview(int pos) {
+        if (pos >= 0 && pos < getCount())
+            return GHThreadPreview.fromCursor((Cursor) getItem(pos));
+        return null;
+    }
+
     private static class NotificationViewHolder {
         public ImageView eventTypeImageView;
 
