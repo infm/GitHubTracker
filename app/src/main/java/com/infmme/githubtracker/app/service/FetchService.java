@@ -47,7 +47,6 @@ public class FetchService extends IntentService {
                 final List<GHThreadPreview> threadList = new ArrayList<GHThreadPreview>();
                 for (GHThread thread : stream)
                     threadList.add(GHThreadPreview.fromGHThread(thread));
-                Collections.reverse(threadList);
                 Log.d(LOGTAG, String.format("Fetched %d notifications from %s",
                                             threadList.size(),
                                             new SimpleDateFormat("dd/MM/yy HH: mm")

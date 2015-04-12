@@ -19,6 +19,7 @@ public class NotificationDbHelper extends SQLiteOpenHelper {
     public static final int CNUM_TIME = 3;
     public static final int CNUM_USER_PIC = 4;
     public static final int CNUM_INFO = 5;
+    public static final int CNUM_THREAD_URL = 6;
 
     public NotificationDbHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
@@ -34,7 +35,8 @@ public class NotificationDbHelper extends SQLiteOpenHelper {
                         NotificationEntry.COLUMN_TITLE + " TEXT NOT NULL, " +
                         NotificationEntry.COLUMN_TIME + " TEXT NOT NULL," +
                         NotificationEntry.COLUMN_USER_PIC + " TEXT NOT NULL, " +
-                        NotificationEntry.COLUMN_INFO + " TEXT NOT NULL" +
+                        NotificationEntry.COLUMN_INFO + " TEXT NOT NULL, " +
+                        NotificationEntry.COLUMN_THREAD_URL + " TEXT NOT NULL" +
 /*
                         ", " +
 

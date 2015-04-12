@@ -12,9 +12,11 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.view.*;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
+import com.infmme.githubtracker.app.data.NotificationContract;
 import com.infmme.githubtracker.app.data.NotificationsContentProvider;
 import com.infmme.githubtracker.app.service.FetchService;
 
@@ -64,15 +66,14 @@ public class HomePageFragment extends Fragment implements LoaderManager.LoaderCa
         Context context = getActivity();
         mAdapter = new NotificationsAdapter(context);
         mListView.setAdapter(mAdapter);
-/*
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 startActivity(new Intent(Intent.ACTION_VIEW)
-                                      .setData(Uri.parse(mAdapter.getItem(position).threadUrl)));
+                                      .setData(Uri.parse(mAdapter.getItemPreview(position)
+                                                                 .threadUrl)));
             }
         });
-*/
 
         mViewFlipper.showNext();
         getLoaderManager().initLoader(0, null, this);
@@ -148,7 +149,8 @@ public class HomePageFragment extends Fragment implements LoaderManager.LoaderCa
         while (mViewFlipper.getCurrentView() != mEmptyView)
             mViewFlipper.showPrevious();
         return new CursorLoader(getActivity(), NotificationsContentProvider.CONTENT_URI,
-                                null, null, null, null);
+                                null, null, null,
+                                NotificationContract.NotificationEntry.COLUMN_TIME + " DESC");
     }
 
     @Override
