@@ -1,52 +1,69 @@
 package com.infmme.githubtracker.app;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.support.v4.widget.CursorAdapter;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.widget.*;
 import com.infmme.githubtracker.app.util.GHThreadPreview;
 import com.squareup.picasso.Picasso;
-
-import java.util.ArrayList;
 
 /**
  * infm created it with love on 4/7/15. Enjoy ;)
  */
-public class NotificationsAdapter extends ArrayAdapter<GHThreadPreview> {
+public class NotificationsAdapter extends CursorAdapter {
     private static final int VIEW_TYPE_COUNT = 2;
 
-    private static final int VIEW_TYPE_NIL = 0;
-    private static final int VIEW_TYPE_FIRST = 1;
+    private static final int VIEW_TYPE_ACTION = 0;
+    private static final int VIEW_TYPE_CONTENT = 1;
 
     private LayoutInflater mLayoutInflater;
 
     public NotificationsAdapter(Context context) {
-        super(context, 0, new ArrayList<GHThreadPreview>());
+        super(context, null, 0);
         mLayoutInflater = LayoutInflater.from(context);
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        ViewHolder holder;
-        if (null == convertView) {
-            convertView = mLayoutInflater.inflate(R.layout.basic_list_item, parent, false);
-            holder = new ViewHolder(convertView);
-            convertView.setTag(holder);
-        } else {
-            holder = (ViewHolder) convertView.getTag();
+    public View newView(Context context, Cursor cursor, ViewGroup parent) {
+        View view = null;
+        switch (getItemViewType(cursor.getPosition())) {
+            case VIEW_TYPE_ACTION:
+                view = mLayoutInflater.inflate(R.layout.action_list_item, parent, false);
+                ActionViewHolder actionViewHolder = new ActionViewHolder(view);
+                view.setTag(actionViewHolder);
+                break;
+            case VIEW_TYPE_CONTENT:
+                view = mLayoutInflater.inflate(R.layout.basic_list_item, parent, false);
+                NotificationViewHolder notifViewHolder = new NotificationViewHolder(view);
+                view.setTag(notifViewHolder);
+                break;
         }
-        holder.update(getItem(position), getContext());
-        return convertView;
+        return view;
+    }
+
+    @Override
+    public void bindView(View view, Context context, Cursor cursor) {
+        switch (getItemViewType(cursor.getPosition())){
+            case VIEW_TYPE_ACTION:
+                ActionViewHolder actionViewHolder = (ActionViewHolder) view.getTag();
+                actionViewHolder.repoName.setText("ALL NOTIFS");
+                break;
+            case VIEW_TYPE_CONTENT:
+                NotificationViewHolder notifViewHolder = (NotificationViewHolder) view.getTag();
+                notifViewHolder.update(GHThreadPreview.fromCursor(cursor), mContext);
+                break;
+        }
     }
 
     @Override
     public int getItemViewType(int position) {
-        return 0;
+        return (0 == position)
+                ? VIEW_TYPE_ACTION
+                : VIEW_TYPE_CONTENT;
     }
 
     @Override
@@ -54,7 +71,7 @@ public class NotificationsAdapter extends ArrayAdapter<GHThreadPreview> {
         return VIEW_TYPE_COUNT;
     }
 
-    private static class ViewHolder {
+    private static class NotificationViewHolder {
         public ImageView eventTypeImageView;
 
         public LinearLayout infoLayout;
@@ -65,7 +82,7 @@ public class NotificationsAdapter extends ArrayAdapter<GHThreadPreview> {
         public ImageView userImageView;
         public TextView detailedMessageTextView;
 
-        public ViewHolder(View view) {
+        public NotificationViewHolder(View view) {
             eventTypeImageView = (ImageView) view.findViewById(R.id.listItemEventType);
             infoLayout = (LinearLayout) view.findViewById(R.id.listItemInfo);
             timeLapsedTextView = (TextView) infoLayout.findViewById(R.id.infoTimeLapsed);
@@ -86,11 +103,21 @@ public class NotificationsAdapter extends ArrayAdapter<GHThreadPreview> {
                    .load(curr.eventTypeResId)
                    .into(eventTypeImageView);
 
-            if (!TextUtils.isEmpty(curr.userPicUrl))
+            if (!TextUtils.isEmpty(curr.userPicPath))
                 Picasso.with(context)
-                       .load(curr.userPicUrl)
+                       .load(curr.userPicPath)
                        .resize(100, 100)
                        .into(userImageView);
+        }
+    }
+
+    private static class ActionViewHolder {
+        public TextView repoName;
+        public Button buttonCancel;
+
+        public ActionViewHolder(View view) {
+            repoName = (TextView) view.findViewById(R.id.action_item_repo_name);
+            buttonCancel = (Button) view.findViewById(R.id.action_item_button_cancel);
         }
     }
 }

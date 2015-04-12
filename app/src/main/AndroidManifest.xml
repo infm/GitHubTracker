@@ -27,6 +27,16 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.infmme.githubtracker.app.MainActivity" />
         </activity>
+
+        <provider
+                android:name=".data.NotificationsContentProvider"
+                android:authorities="com.infmme.githubtracker.app.provider"
+                android:enabled="true"
+                android:exported="false" />
+
+        <service
+                android:name=".service.FetchService"
+                android:exported="false"/>
     </application>
 
 </manifest>

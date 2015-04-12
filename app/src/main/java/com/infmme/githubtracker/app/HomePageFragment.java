@@ -3,29 +3,23 @@ package com.infmme.githubtracker.app;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
+import android.view.*;
 import android.widget.ListView;
+import android.widget.Toast;
 import android.widget.ViewFlipper;
-import com.infmme.githubtracker.app.util.GHThreadPreview;
-import org.kohsuke.github.GHNotificationStream;
-import org.kohsuke.github.GHThread;
-import org.kohsuke.github.GitHub;
+import com.infmme.githubtracker.app.data.NotificationsContentProvider;
+import com.infmme.githubtracker.app.service.FetchService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
-public class HomePageFragment extends Fragment {
+public class HomePageFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private OnFragmentInteractionListener mListener;
 
@@ -33,8 +27,6 @@ public class HomePageFragment extends Fragment {
     private ListView mListView;
     private View mEmptyView;
     private View mErrorView;
-
-    private Handler mHandler;
 
     private NotificationsAdapter mAdapter;
 
@@ -55,8 +47,7 @@ public class HomePageFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        mHandler = new Handler();
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -73,6 +64,7 @@ public class HomePageFragment extends Fragment {
         Context context = getActivity();
         mAdapter = new NotificationsAdapter(context);
         mListView.setAdapter(mAdapter);
+/*
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -80,16 +72,20 @@ public class HomePageFragment extends Fragment {
                                       .setData(Uri.parse(mAdapter.getItem(position).threadUrl)));
             }
         });
+*/
 
         mViewFlipper.showNext();
+        getLoaderManager().initLoader(0, null, this);
     }
 
     @Override
     public void onResume() {
         super.onResume();
+/*
         Context context = getActivity();
         if (null != context && null != mAdapter)
             fetchData(context, mAdapter);
+*/
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -123,71 +119,50 @@ public class HomePageFragment extends Fragment {
         mErrorView = mViewFlipper.findViewById(R.id.listViewHomePageErrorView);
     }
 
-    private void fetchData(final Context context, final NotificationsAdapter adapter) {
-        final String accessToken = PreferenceManager.getDefaultSharedPreferences(context)
-                                                    .getString("accessToken", "invalid");
-        if (!"invalid".equals(accessToken)) {
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    final String logTag = "FetchData";
-                    try {
-                        GitHub github = authorize(accessToken);
-                        Runnable task;
-                        if (null != github) {
-                            Log.d(logTag, "Me: " + github.getMyself().getName());
-                            GHNotificationStream stream = github.listNotifications();
-                            stream.nonBlocking(true);
-                            final List<GHThreadPreview> threadList =
-                                    new ArrayList<GHThreadPreview>();
-                            for (GHThread thread : stream)
-                                threadList.add(GHThreadPreview.fromGHThread(thread));
-                            Collections.reverse(threadList);
-                            task = new Runnable() {
-                                @Override
-                                public void run() {
-                                    adapter.clear();
-                                    mAdapter.addAll(threadList);
-                                    adapter.notifyDataSetChanged();
-                                    while (mViewFlipper.getCurrentView() != mListView)
-                                        mViewFlipper.showPrevious();
-                                }
-                            };
-                        } else {
-                            PreferenceManager.getDefaultSharedPreferences(context)
-                                             .edit().putString("accessToken", "invalid").commit();
-                            task = new Runnable() {
-                                @Override
-                                public void run() {
-                                    startActivity(new Intent(context, LoginActivity.class));
-                                    while (mViewFlipper.getCurrentView() != mErrorView)
-                                        mViewFlipper.showNext();
-                                }
-                            };
-                        }
-                        mHandler.post(task);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }).start();
-        }
+    private void fetchData(@NonNull Context context) {
+        context.startService(new Intent(context, FetchService.class));
     }
 
-    private GitHub authorize(String accessToken) {
-        try {
-            String meaningfulPart = accessToken
-                    .substring(0, accessToken.indexOf('&'));
-            GitHub github = GitHub.connectUsingOAuth(meaningfulPart);
-            if (!github.isCredentialValid()) {
-                Log.e("FetchData", "Auth failed " + github);
-                return null;
-            }
-            return github;
-        } catch (IOException e) {
-            e.printStackTrace();
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.homepage_fragment, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_fetch:
+                Context context = getActivity();
+                Toast.makeText(context, "Fetching started", Toast.LENGTH_SHORT).show();
+                fetchData(context);
+                break;
+            default:
+                return false;
         }
-        return null;
+        return true;
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        while (mViewFlipper.getCurrentView() != mEmptyView)
+            mViewFlipper.showPrevious();
+        return new CursorLoader(getActivity(), NotificationsContentProvider.CONTENT_URI,
+                                null, null, null, null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        while (mViewFlipper.getCurrentView() != mListView)
+            mViewFlipper.showPrevious();
+        mAdapter.changeCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mAdapter.changeCursor(null);
+        while (mViewFlipper.getCurrentView() != mErrorView)
+            mViewFlipper.showNext();
     }
 
     public interface OnFragmentInteractionListener {
