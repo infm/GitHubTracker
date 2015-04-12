@@ -20,5 +20,6 @@ public class NotificationContract {
         public static final String COLUMN_USER_PIC = "user_pic_path";
         public static final String COLUMN_INFO = "info";
         public static final String COLUMN_THREAD_URL = "thread_url";
+        public static final String COLUMN_REPO_NAME = "repo_name";
     }
 }

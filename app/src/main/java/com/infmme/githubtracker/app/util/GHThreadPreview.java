@@ -31,6 +31,7 @@ public class GHThreadPreview {
     public String userPicPath;
 
     public String threadUrl;
+    public String repoName;
 
     private String eventTypeRaw;
     private String userName;
@@ -59,6 +60,7 @@ public class GHThreadPreview {
 
             result.userPicPath = c.getString(NotificationDbHelper.CNUM_USER_PIC);
             result.threadUrl = c.getString(NotificationDbHelper.CNUM_THREAD_URL);
+            result.repoName = c.getString(NotificationDbHelper.CNUM_REPO_NAME);
         }
         return result;
     }
@@ -83,6 +85,7 @@ public class GHThreadPreview {
             }
             result.threadUrl = issue.getHtmlUrl().toString();
             result.userName = issue.getUser().getLogin();
+            result.repoName = issue.getRepository().getFullName();
         } else if ("PullRequest".equals(result.eventTypeRaw)) {
             GHPullRequest pullRequest = currThread.getBoundPullRequest();
             List<GHIssueComment> comments = pullRequest.getComments();
@@ -96,17 +99,20 @@ public class GHThreadPreview {
             }
             result.threadUrl = pullRequest.getHtmlUrl().toString();
             result.userName = pullRequest.getUser().getLogin();
+            result.repoName = pullRequest.getRepository().getFullName();
         } else if ("Commit".equals(result.eventTypeRaw)) {
             GHCommit commit = currThread.getBoundCommit();
             result.detailedMessage = commit.getCommitShortInfo().getMessage();
             result.userPicUrl = commit.getAuthor().getAvatarUrl();
             result.threadUrl = commit.getOwner().getSvnUrl() + "/commit/" + commit.getSHA1();
             result.userName = commit.getAuthor().getLogin();
+            result.repoName = commit.getOwner().getFullName();
         } else {
             result.detailedMessage = "ERROR OCCURRED";
             result.userPicUrl = currThread.getRepository().getOwner().getAvatarUrl();
             result.threadUrl = currThread.getRepository().getSvnUrl();
             result.userName = currThread.getRepository().getOwner().getLogin();
+            result.repoName = "SOME SHIT";
         }
 
         result.eventTypeResId = (eventTypeMap.containsKey(result.eventTypeRaw))
@@ -129,6 +135,7 @@ public class GHThreadPreview {
 
         cv.put(NotificationContract.NotificationEntry.COLUMN_INFO, detailedMessage);
         cv.put(NotificationContract.NotificationEntry.COLUMN_THREAD_URL, threadUrl);
+        cv.put(NotificationContract.NotificationEntry.COLUMN_REPO_NAME, repoName);
 
         context.getContentResolver().insert(NotificationsContentProvider.CONTENT_URI, cv);
     }
@@ -151,7 +158,7 @@ public class GHThreadPreview {
             output = context.openFileOutput(outputName, Context.MODE_PRIVATE);
 
             int read;
-            byte[] data = new byte[4096];
+            byte[] data = new byte[1024];
             while ((read = input.read(data)) != -1)
                 output.write(data, 0, read);
 

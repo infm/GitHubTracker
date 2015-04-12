@@ -150,6 +150,7 @@ public class HomePageFragment extends Fragment implements LoaderManager.LoaderCa
             mViewFlipper.showPrevious();
         return new CursorLoader(getActivity(), NotificationsContentProvider.CONTENT_URI,
                                 null, null, null,
+                                NotificationContract.NotificationEntry.COLUMN_REPO_NAME + " ASC, " +
                                 NotificationContract.NotificationEntry.COLUMN_TIME + " DESC");
     }
 
